@@ -691,6 +691,15 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     },
   }).addTo(mapLeft);
 
+  const currentFerryLayer = L.geoJSON(CURRENT_E39_FERRY_SEGMENT.geometry, {
+    style: {
+      color: "#4f83ff",
+      weight: 4,
+      opacity: 0.95,
+      dashArray: "8 8",
+    },
+  }).addTo(mapLeft);
+
   const futureLayer = L.geoJSON(futureRoute.displayGeometry ?? futureRoute.geometry, {
     style: {
       color: "#dd6b20",
@@ -699,7 +708,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     },
   }).addTo(mapRight);
 
-  state.current.routeLayers.push(currentLayer);
+  state.current.routeLayers.push(currentLayer, currentFerryLayer);
   state.future.routeLayers.push(futureLayer);
 
   if (futureRoute.hordfastGeoJson) {
