@@ -21,34 +21,53 @@ const CURRENT_E39_FERRY_SEGMENT = {
   },
 };
 
-const FUTURE_SOUTH_ANCHOR = { label: "Smiene-Harestad", lat: 59.009, lon: 5.690 };
-const FUTURE_NORTH_ANCHOR = { label: "Asland-Svegatjorn", lat: 60.208, lon: 5.465 };
+const FUTURE_SOUTH_ANCHOR = { label: "Smiene", lat: 58.9826, lon: 5.6978 };
+const FUTURE_NORTH_ANCHOR = { label: "Vagsbotn", lat: 60.4658, lon: 5.3986 };
+const FUTURE_KLAUVANESET = { label: "Klauvaneset", lat: 60.4775, lon: 5.3456 };
+const FUTURE_HORDFAST_NORTH = { label: "Svegatjorn", lat: 60.2405, lon: 5.4652 };
+const FUTURE_HORDFAST_SOUTH = { label: "Adland", lat: 59.7704, lon: 5.4672 };
+const FUTURE_BOMLAFJORDEN_NORTH = { label: "Bomlafjorden nord", lat: 59.7364, lon: 5.455 };
+const FUTURE_BOKN = { label: "Vestre Bokn", lat: 59.2297, lon: 5.4613 };
+const FUTURE_HARESTAD = { label: "Harestad", lat: 59.0688, lon: 5.6417 };
 
 const FUTURE_E39_SEGMENTS = [
   {
-    label: "E39 Smiene-Harestad",
-    distance: 8000,
+    label: "E39 Klauvaneset-Vagsbotn",
+    distance: 7500,
     duration: 5 * 60,
     geometry: {
       type: "LineString",
       coordinates: [
-        [5.690, 59.009],
-        [5.660, 59.030],
-        [5.620, 59.050],
+        [5.3986, 60.4658],
+        [5.389, 60.468],
+        [5.378, 60.472],
+        [5.366, 60.475],
+        [5.356, 60.476],
+        [5.3456, 60.4775],
       ],
     },
   },
   {
-    label: "E39 Rogfast",
-    distance: 27000,
-    duration: 18 * 60,
+    label: "E39 Hordfast / Stord-Os / Adland-Svegatjorn",
+    distance: 55000,
+    duration: 31 * 60,
     geometry: {
       type: "LineString",
       coordinates: [
-        [5.620, 59.050],
-        [5.575, 59.125],
-        [5.520, 59.205],
-        [5.470, 59.270],
+        [5.4652, 60.2405],
+        [5.425, 60.233],
+        [5.362, 60.224],
+        [5.306, 60.198],
+        [5.257, 60.160],
+        [5.229, 60.117],
+        [5.214, 60.066],
+        [5.206, 60.012],
+        [5.203, 59.955],
+        [5.248, 59.911],
+        [5.304, 59.871],
+        [5.366, 59.835],
+        [5.424, 59.803],
+        [5.4672, 59.7704],
       ],
     },
   },
@@ -59,26 +78,49 @@ const FUTURE_E39_SEGMENTS = [
     geometry: {
       type: "LineString",
       coordinates: [
-        [5.470, 59.270],
-        [5.430, 59.360],
-        [5.365, 59.500],
-        [5.315, 59.635],
-        [5.340, 59.760],
-        [5.455, 59.885],
+        [5.455, 59.7364],
+        [5.418, 59.698],
+        [5.368, 59.655],
+        [5.329, 59.603],
+        [5.302, 59.548],
+        [5.289, 59.49],
+        [5.295, 59.43],
+        [5.319, 59.373],
+        [5.363, 59.321],
+        [5.42, 59.272],
+        [5.4613, 59.2297],
       ],
     },
   },
   {
-    label: "E39 Hordfast / Stord-Os / Asland-Svegatjorn",
-    distance: 55000,
-    duration: 31 * 60,
+    label: "E39 Rogfast",
+    distance: 27000,
+    duration: 18 * 60,
     geometry: {
       type: "LineString",
       coordinates: [
-        [5.455, 59.885],
-        [5.390, 59.995],
-        [5.405, 60.085],
-        [5.465, 60.208],
+        [5.4613, 59.2297],
+        [5.455, 59.187],
+        [5.469, 59.143],
+        [5.5, 59.101],
+        [5.551, 59.075],
+        [5.603, 59.067],
+        [5.6417, 59.0688],
+      ],
+    },
+  },
+  {
+    label: "E39 Smiene-Harestad",
+    distance: 5000,
+    duration: 4 * 60,
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [5.6417, 59.0688],
+        [5.653, 59.056],
+        [5.667, 59.043],
+        [5.682, 59.027],
+        [5.6978, 58.9826],
       ],
     },
   },
@@ -173,7 +215,7 @@ formEl.addEventListener("submit", async (event) => {
     }
 
     drawRoutes(currentRoute, futureRoute, fromLocation, toLocation);
-    setStatus("Rutene er oppdatert. Hoyre kart viser modellert framtidig E39 med tidsbesparelse.");
+    setStatus("Rutene er oppdatert. Hoyre kart viser framtidstrase bygget fra offentlige plankart og prosjektkorridorer.");
   } catch (error) {
     console.error(error);
     clearMapVisuals(state.current);
@@ -311,28 +353,61 @@ async function fetchCurrentE39Route(fromLocation, toLocation) {
 
 async function fetchFutureE39Route(fromLocation, toLocation) {
   const shouldRunNorthToSouth = chooseFutureDirection(fromLocation, toLocation);
-  const corridorSegments = shouldRunNorthToSouth
-    ? [...FUTURE_E39_SEGMENTS].reverse().map(reverseSegment)
-    : FUTURE_E39_SEGMENTS;
+  const orderedFixedSegments = shouldRunNorthToSouth
+    ? FUTURE_E39_SEGMENTS
+    : [...FUTURE_E39_SEGMENTS].reverse().map(reverseSegment);
 
   const startAnchor = shouldRunNorthToSouth ? FUTURE_NORTH_ANCHOR : FUTURE_SOUTH_ANCHOR;
   const endAnchor = shouldRunNorthToSouth ? FUTURE_SOUTH_ANCHOR : FUTURE_NORTH_ANCHOR;
 
+  const corridorRoute = await buildFutureCorridor(shouldRunNorthToSouth, orderedFixedSegments);
   const [firstLeg, lastLeg] = await Promise.all([
     fetchRoadRoute([fromLocation, startAnchor]),
     fetchRoadRoute([endAnchor, toLocation]),
   ]);
 
-  const route = mergeRouteSegments([
-    firstLeg,
-    ...corridorSegments,
-    lastLeg,
-  ]);
+  const route = mergeRouteSegments([firstLeg, ...corridorRoute, lastLeg]);
 
   return {
     ...route,
-    projects: FUTURE_E39_SEGMENTS.map((segment) => segment.label),
+    projects: orderedFixedSegments.map((segment) => segment.label),
   };
+}
+
+async function buildFutureCorridor(shouldRunNorthToSouth, fixedSegments) {
+  const connectorPointSets = shouldRunNorthToSouth
+    ? [
+        [FUTURE_KLAUVANESET, FUTURE_HORDFAST_NORTH],
+        [FUTURE_HORDFAST_SOUTH, FUTURE_BOMLAFJORDEN_NORTH],
+      ]
+    : [
+        [FUTURE_BOMLAFJORDEN_NORTH, FUTURE_HORDFAST_SOUTH],
+        [FUTURE_HORDFAST_NORTH, FUTURE_KLAUVANESET],
+      ];
+
+  const connectorRoutes = await Promise.all(
+    connectorPointSets.map(([fromPoint, toPoint]) => fetchRoadRoute([fromPoint, toPoint]))
+  );
+
+  return shouldRunNorthToSouth
+    ? [
+        fixedSegments[0],
+        connectorRoutes[0],
+        fixedSegments[1],
+        connectorRoutes[1],
+        fixedSegments[2],
+        fixedSegments[3],
+        fixedSegments[4],
+      ]
+    : [
+        fixedSegments[0],
+        fixedSegments[1],
+        fixedSegments[2],
+        connectorRoutes[0],
+        fixedSegments[3],
+        connectorRoutes[1],
+        fixedSegments[4],
+      ];
 }
 
 function chooseFutureDirection(fromLocation, toLocation) {
@@ -441,7 +516,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     title: formatSummary(futureRoute.distance, futureRoute.duration),
     fromLocation,
     toLocation,
-    footer: `Sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)} med Smiene-Harestad, Rogfast, Bokn-Bomlafjorden og Hordfast`,
+    footer: `Sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)} med Klauvaneset-Vagsbotn, Hordfast, Bokn-Bomlafjorden, Rogfast og Smiene-Harestad`,
   });
   rightDetailsEl.hidden = false;
 

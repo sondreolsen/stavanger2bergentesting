@@ -23,7 +23,7 @@ body {
   font-family: "Source Sans 3", sans-serif;
   color: var(--ink);
   background:
-    linear-gradient(rgba(248, 245, 238, 0.78), rgba(243, 239, 229, 0.82)),
+    linear-gradient(rgba(248, 245, 238, 0.58), rgba(243, 239, 229, 0.62)),
     url("./nyttbaksidebilde.png?v=4") center / cover fixed no-repeat;
 }
 
