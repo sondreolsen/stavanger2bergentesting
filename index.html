@@ -24,28 +24,34 @@
       <form id="route-form" class="route-form">
         <label class="field">
           <span>Fra</span>
-          <input
-            id="from-input"
-            name="from"
-            type="text"
-            placeholder="Knarvik"
-            value="Knarvik"
-            autocomplete="street-address"
-            required
-          >
+          <div class="field__control">
+            <input
+              id="from-input"
+              name="from"
+              type="text"
+              placeholder="Knarvik"
+              value="Knarvik"
+              autocomplete="off"
+              required
+            >
+            <div id="from-suggestions" class="suggestions" role="listbox" aria-label="Forslag for fra-feltet"></div>
+          </div>
         </label>
 
         <label class="field">
           <span>Til</span>
-          <input
-            id="to-input"
-            name="to"
-            type="text"
-            placeholder="Stavanger"
-            value="Stavanger"
-            autocomplete="off"
-            required
-          >
+          <div class="field__control">
+            <input
+              id="to-input"
+              name="to"
+              type="text"
+              placeholder="Stavanger"
+              value="Stavanger"
+              autocomplete="off"
+              required
+            >
+            <div id="to-suggestions" class="suggestions" role="listbox" aria-label="Forslag for til-feltet"></div>
+          </div>
         </label>
 
         <button type="submit" id="submit-button">Vis rute</button>
@@ -69,6 +75,7 @@
         <div class="map-card__header">
           <div>
             <h2>Fremtidens E39</h2>
+            <p id="future-savings" class="map-subtitle"></p>
           </div>
           <div id="summary-right" class="summary-pill">Søk etter en rute for å se data</div>
         </div>

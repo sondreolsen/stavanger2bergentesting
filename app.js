@@ -1,6 +1,6 @@
 const INITIAL_BOUNDS = L.latLngBounds(
-  [58.85, 5.4],
-  [60.7, 5.75]
+  [58.93, 5.28],
+  [60.62, 5.72]
 );
 
 const HALHJEM_FERRY_QUAY = { label: "Halhjem ferjekai", lat: 60.14735, lon: 5.42693 };
@@ -94,9 +94,17 @@ const statusEl = document.querySelector("#status");
 const formEl = document.querySelector("#route-form");
 const fromInputEl = document.querySelector("#from-input");
 const toInputEl = document.querySelector("#to-input");
+const fromSuggestionsEl = document.querySelector("#from-suggestions");
+const toSuggestionsEl = document.querySelector("#to-suggestions");
 const submitButtonEl = document.querySelector("#submit-button");
 const leftSummaryEl = document.querySelector("#summary-left");
 const rightSummaryEl = document.querySelector("#summary-right");
+const futureSavingsEl = document.querySelector("#future-savings");
+
+const autocompleteState = {
+  from: createAutocompleteState(),
+  to: createAutocompleteState(),
+};
 
 const mapLeft = L.map("map-left", {
   zoomControl: true,
@@ -119,10 +127,12 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 19,
 }).addTo(mapRight);
 
-mapLeft.fitBounds(INITIAL_BOUNDS, { padding: [24, 24] });
-mapRight.fitBounds(INITIAL_BOUNDS, { padding: [24, 24] });
+mapLeft.fitBounds(INITIAL_BOUNDS, { padding: [8, 8] });
+mapRight.fitBounds(INITIAL_BOUNDS, { padding: [8, 8] });
 
 syncMaps(mapLeft, mapRight);
+setupAutocomplete("from", fromInputEl, fromSuggestionsEl);
+setupAutocomplete("to", toInputEl, toSuggestionsEl);
 
 formEl.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -169,6 +179,7 @@ formEl.addEventListener("submit", async (event) => {
     setStatus(error.message || "Klarte ikke a hente rute. Prov et mer presist stednavn eller adresse.");
     leftSummaryEl.textContent = "Ingen rute funnet";
     rightSummaryEl.textContent = "Ingen rute funnet";
+    futureSavingsEl.textContent = "";
   } finally {
     if (state.activeRequestId === requestId) {
       submitButtonEl.disabled = false;
@@ -187,6 +198,15 @@ function createMapState() {
     routeLayers: [],
     markers: [],
     popups: [],
+  };
+}
+
+function createAutocompleteState() {
+  return {
+    items: [],
+    highlightedIndex: -1,
+    debounceId: null,
+    requestId: 0,
   };
 }
 
@@ -219,6 +239,33 @@ async function geocodePlace(query) {
     lat: Number(match.lat),
     lon: Number(match.lon),
   };
+}
+
+async function fetchPlaceSuggestions(query) {
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "5");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("countrycodes", "no");
+  url.searchParams.set("q", query);
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Klarte ikke a hente adresseforslag akkurat na.");
+  }
+
+  const results = await response.json();
+  return results.map((result) => ({
+    label: result.display_name,
+    shortLabel: shortenLabel(result.display_name),
+    lat: Number(result.lat),
+    lon: Number(result.lon),
+  }));
 }
 
 async function fetchRoadRoute(points) {
@@ -374,8 +421,9 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     addMarker(mapRight, endLatLng, "Mal", toLocation.label)
   );
 
-  leftSummaryEl.textContent = formatSummary(currentRoute.distance, currentRoute.duration);
-  rightSummaryEl.textContent = `${formatSummary(futureRoute.distance, futureRoute.duration)}\nSparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)}`;
+  leftSummaryEl.textContent = formatDuration(currentRoute.duration);
+  rightSummaryEl.textContent = formatDuration(futureRoute.duration);
+  futureSavingsEl.textContent = `Sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)}`;
 
   const currentPopup = buildPopupHtml({
     title: formatSummary(currentRoute.distance, currentRoute.duration),
@@ -408,7 +456,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
       .openOn(mapRight)
   );
 
-  mapLeft.fitBounds(currentLayer.getBounds().pad(0.16), { padding: [24, 24] });
+  mapLeft.fitBounds(currentLayer.getBounds().pad(0.06), { padding: [10, 10] });
 }
 
 function buildPopupHtml({ title, fromLocation, toLocation, footer }) {
@@ -471,6 +519,131 @@ function shortenLabel(label) {
 
 function setStatus(message) {
   statusEl.textContent = message;
+}
+
+function setupAutocomplete(fieldKey, inputEl, suggestionsEl) {
+  inputEl.addEventListener("input", () => {
+    const query = inputEl.value.trim();
+    const fieldState = autocompleteState[fieldKey];
+
+    clearTimeout(fieldState.debounceId);
+
+    if (query.length < 2) {
+      hideSuggestions(fieldKey, suggestionsEl);
+      return;
+    }
+
+    fieldState.debounceId = window.setTimeout(async () => {
+      const requestId = Date.now();
+      fieldState.requestId = requestId;
+
+      try {
+        const items = await fetchPlaceSuggestions(query);
+        if (fieldState.requestId !== requestId) {
+          return;
+        }
+
+        fieldState.items = items;
+        fieldState.highlightedIndex = -1;
+        renderSuggestions(fieldKey, inputEl, suggestionsEl);
+      } catch (error) {
+        if (fieldState.requestId !== requestId) {
+          return;
+        }
+
+        fieldState.items = [];
+        fieldState.highlightedIndex = -1;
+        hideSuggestions(fieldKey, suggestionsEl);
+      }
+    }, 220);
+  });
+
+  inputEl.addEventListener("keydown", (event) => {
+    const fieldState = autocompleteState[fieldKey];
+    if (!fieldState.items.length) {
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      fieldState.highlightedIndex = Math.min(fieldState.highlightedIndex + 1, fieldState.items.length - 1);
+      renderSuggestions(fieldKey, inputEl, suggestionsEl);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      fieldState.highlightedIndex = Math.max(fieldState.highlightedIndex - 1, 0);
+      renderSuggestions(fieldKey, inputEl, suggestionsEl);
+      return;
+    }
+
+    if (event.key === "Enter" && fieldState.highlightedIndex >= 0) {
+      event.preventDefault();
+      applySuggestion(fieldKey, inputEl, suggestionsEl, fieldState.items[fieldState.highlightedIndex]);
+      return;
+    }
+
+    if (event.key === "Escape") {
+      hideSuggestions(fieldKey, suggestionsEl);
+    }
+  });
+
+  inputEl.addEventListener("blur", () => {
+    window.setTimeout(() => hideSuggestions(fieldKey, suggestionsEl), 140);
+  });
+
+  inputEl.addEventListener("focus", () => {
+    const fieldState = autocompleteState[fieldKey];
+    if (fieldState.items.length) {
+      renderSuggestions(fieldKey, inputEl, suggestionsEl);
+    }
+  });
+}
+
+function renderSuggestions(fieldKey, inputEl, suggestionsEl) {
+  const fieldState = autocompleteState[fieldKey];
+  if (!fieldState.items.length) {
+    hideSuggestions(fieldKey, suggestionsEl);
+    return;
+  }
+
+  suggestionsEl.innerHTML = "";
+  suggestionsEl.hidden = false;
+
+  fieldState.items.forEach((item, index) => {
+    const buttonEl = document.createElement("button");
+    buttonEl.type = "button";
+    buttonEl.className = "suggestion-item";
+    if (index === fieldState.highlightedIndex) {
+      buttonEl.classList.add("is-active");
+    }
+
+    buttonEl.innerHTML = `
+      <strong>${escapeHtml(item.shortLabel)}</strong>
+      <span>${escapeHtml(item.label)}</span>
+    `;
+
+    buttonEl.addEventListener("mousedown", (event) => {
+      event.preventDefault();
+      applySuggestion(fieldKey, inputEl, suggestionsEl, item);
+    });
+
+    suggestionsEl.appendChild(buttonEl);
+  });
+}
+
+function applySuggestion(fieldKey, inputEl, suggestionsEl, item) {
+  inputEl.value = item.label;
+  autocompleteState[fieldKey].items = [];
+  autocompleteState[fieldKey].highlightedIndex = -1;
+  hideSuggestions(fieldKey, suggestionsEl);
+}
+
+function hideSuggestions(fieldKey, suggestionsEl) {
+  autocompleteState[fieldKey].highlightedIndex = -1;
+  suggestionsEl.hidden = true;
+  suggestionsEl.innerHTML = "";
 }
 
 function escapeHtml(value) {
