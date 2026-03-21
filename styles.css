@@ -23,9 +23,8 @@ body {
   font-family: "Source Sans 3", sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(236, 170, 91, 0.26), transparent 28%),
-    radial-gradient(circle at top right, rgba(73, 155, 136, 0.22), transparent 34%),
-    linear-gradient(180deg, #f8f5ee 0%, var(--bg) 100%);
+    linear-gradient(rgba(248, 245, 238, 0.78), rgba(243, 239, 229, 0.82)),
+    url("./baksidebilde.png") center / cover fixed no-repeat;
 }
 
 .page-shell {
