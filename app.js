@@ -78,8 +78,10 @@ const CURRENT_E39_FERRY_SEGMENT = {
     type: "LineString",
     coordinates: [
       [HALHJEM_FERRY_QUAY.lon, HALHJEM_FERRY_QUAY.lat],
-      [5.398, 60.075],
-      [5.368, 60.025],
+      [5.423, 60.118],
+      [5.392, 60.073],
+      [5.352, 60.018],
+      [5.334, 59.958],
       [SANDVIKVAG_FERRY_QUAY.lon, SANDVIKVAG_FERRY_QUAY.lat],
     ],
   },
