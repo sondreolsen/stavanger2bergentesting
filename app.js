@@ -52,6 +52,21 @@ const BOKN_BOMLAFJORDEN_GEOJSON = {
     },
   ],
 };
+const ROGFAST_GEOJSON = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: { id: "rogfast_main_tunnel_approx", feature_type: "main_tunnel_centerline" },
+      geometry: { type: "LineString", coordinates: [[5.6358, 59.01191], [5.592, 59.028], [5.545, 59.045], [5.495, 59.0575], [5.445, 59.066], [5.42, 59.086], [5.449, 59.188]] },
+    },
+    {
+      type: "Feature",
+      properties: { id: "rogfast_bokn_surface_road_approx", feature_type: "surface_road_centerline" },
+      geometry: { type: "LineString", coordinates: [[5.449, 59.188], [5.451, 59.1925], [5.453, 59.1985], [5.455, 59.2045], [5.456, 59.207]] },
+    },
+  ],
+};
 
 const CURRENT_E39_FERRY_SEGMENT = {
   label: "Halhjem-Sandvikvag",
@@ -74,8 +89,8 @@ const FUTURE_KLAUVANESET = { label: "Klauvaneset", lat: 60.4775, lon: 5.3456 };
 const FUTURE_HORDFAST_NORTH = { label: "Svegatjorn", lat: 60.20445, lon: 5.44045 };
 const FUTURE_HORDFAST_SOUTH = { label: "Adland", lat: 59.79889, lon: 5.49657 };
 const FUTURE_BOMLAFJORDEN_NORTH = { label: "Bomlafjorden nord", lat: 59.704, lon: 5.488 };
-const FUTURE_BOKN = { label: "Vestre Bokn", lat: 59.1845, lon: 5.443 };
-const FUTURE_HARESTAD = { label: "Harestad", lat: 59.0688, lon: 5.6417 };
+const FUTURE_BOKN = { label: "Vestre Bokn", lat: 59.207, lon: 5.456 };
+const FUTURE_HARESTAD = { label: "Harestad", lat: 59.01191, lon: 5.6358 };
 
 const FUTURE_E39_SEGMENTS = [
   {
@@ -110,18 +125,7 @@ const FUTURE_E39_SEGMENTS = [
     label: "E39 Rogfast",
     distance: 27000,
     duration: 18 * 60,
-    geometry: {
-      type: "LineString",
-      coordinates: [
-        [5.4613, 59.2297],
-        [5.455, 59.187],
-        [5.469, 59.143],
-        [5.5, 59.101],
-        [5.551, 59.075],
-        [5.603, 59.067],
-        [5.6417, 59.0688],
-      ],
-    },
+    geometry: null,
   },
   {
     label: "E39 Smiene-Harestad",
@@ -404,6 +408,7 @@ async function fetchFutureE39Route(fromLocation, toLocation) {
 async function getFutureSegments() {
   const hordfastSegment = await loadHordfastSegment();
   const boknBomlafjordenSegment = await loadBoknBomlafjordenSegment();
+  const rogfastSegment = await loadRogfastSegment();
 
   return {
     futureSegments: FUTURE_E39_SEGMENTS.map((segment) =>
@@ -411,7 +416,9 @@ async function getFutureSegments() {
         ? { ...segment, geometry: hordfastSegment.geometry, distance: hordfastSegment.distance }
         : segment.label.includes("Bokn-Bomlafjorden")
           ? { ...segment, geometry: boknBomlafjordenSegment.geometry, distance: boknBomlafjordenSegment.distance }
-        : segment
+          : segment.label.includes("Rogfast")
+            ? { ...segment, geometry: rogfastSegment.geometry, distance: rogfastSegment.distance }
+          : segment
     ),
     hordfastGeoJson: hordfastSegment.geojson,
   };
@@ -439,6 +446,23 @@ async function loadBoknBomlafjordenSegment() {
   const coordinates = flattenGeoJsonToLine(geojson).reverse();
   if (coordinates.length < 2) {
     throw new Error("Bokn-Bomlafjorden-filen inneholder ikke en gyldig linje.");
+  }
+
+  return {
+    geometry: {
+      type: "LineString",
+      coordinates,
+    },
+    distance: estimateLineDistance(coordinates),
+    geojson,
+  };
+}
+
+async function loadRogfastSegment() {
+  const geojson = ROGFAST_GEOJSON;
+  const coordinates = flattenGeoJsonToLine(geojson).reverse();
+  if (coordinates.length < 2) {
+    throw new Error("Rogfast-filen inneholder ikke en gyldig linje.");
   }
 
   return {
