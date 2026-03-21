@@ -372,11 +372,17 @@ async function fetchFutureE39Route(fromLocation, toLocation) {
   ]);
 
   const route = mergeRouteSegments([firstLeg, ...corridorRoute, lastLeg]);
+  const displayRoute = mergeRouteSegments([
+    firstLeg,
+    ...corridorRoute.filter((segment) => !segment.label?.includes("Hordfast")),
+    lastLeg,
+  ]);
 
   return {
     ...route,
     projects: orderedFixedSegments.map((segment) => segment.label),
     hordfastGeoJson: shouldRunNorthToSouth ? hordfastGeoJson : reverseHordfastGeoJson(hordfastGeoJson),
+    displayGeometry: displayRoute.geometry,
   };
 }
 
@@ -595,7 +601,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     },
   }).addTo(mapLeft);
 
-  const futureLayer = L.geoJSON(futureRoute.geometry, {
+  const futureLayer = L.geoJSON(futureRoute.displayGeometry ?? futureRoute.geometry, {
     style: {
       color: "#dd6b20",
       weight: 6,
