@@ -100,6 +100,8 @@ const submitButtonEl = document.querySelector("#submit-button");
 const leftSummaryEl = document.querySelector("#summary-left");
 const rightSummaryEl = document.querySelector("#summary-right");
 const futureSavingsEl = document.querySelector("#future-savings");
+const leftDetailsEl = document.querySelector("#details-left");
+const rightDetailsEl = document.querySelector("#details-right");
 
 const autocompleteState = {
   from: createAutocompleteState(),
@@ -180,6 +182,8 @@ formEl.addEventListener("submit", async (event) => {
     leftSummaryEl.textContent = "Ingen rute funnet";
     rightSummaryEl.textContent = "Ingen rute funnet";
     futureSavingsEl.textContent = "";
+    leftDetailsEl.hidden = true;
+    rightDetailsEl.hidden = true;
   } finally {
     if (state.activeRequestId === requestId) {
       submitButtonEl.disabled = false;
@@ -425,41 +429,26 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
   rightSummaryEl.textContent = formatDuration(futureRoute.duration);
   futureSavingsEl.textContent = `Sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)}`;
 
-  const currentPopup = buildPopupHtml({
+  leftDetailsEl.innerHTML = buildDetailsHtml({
     title: formatSummary(currentRoute.distance, currentRoute.duration),
     fromLocation,
     toLocation,
     footer: "Dagens E39 via Halhjem-Sandvikvag",
   });
+  leftDetailsEl.hidden = false;
 
-  const futurePopup = buildPopupHtml({
+  rightDetailsEl.innerHTML = buildDetailsHtml({
     title: formatSummary(futureRoute.distance, futureRoute.duration),
     fromLocation,
     toLocation,
     footer: `Sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)} med Smiene-Harestad, Rogfast, Bokn-Bomlafjorden og Hordfast`,
   });
-
-  const currentCenter = currentLayer.getBounds().getCenter();
-  const futureCenter = futureLayer.getBounds().getCenter();
-
-  state.current.popups.push(
-    L.popup({ autoClose: false, closeButton: false, offset: [0, -6] })
-      .setLatLng(currentCenter)
-      .setContent(currentPopup)
-      .openOn(mapLeft)
-  );
-
-  state.future.popups.push(
-    L.popup({ autoClose: false, closeButton: false, offset: [0, -6] })
-      .setLatLng(futureCenter)
-      .setContent(futurePopup)
-      .openOn(mapRight)
-  );
+  rightDetailsEl.hidden = false;
 
   mapLeft.fitBounds(currentLayer.getBounds().pad(0.06), { padding: [10, 10] });
 }
 
-function buildPopupHtml({ title, fromLocation, toLocation, footer }) {
+function buildDetailsHtml({ title, fromLocation, toLocation, footer }) {
   return `
     <div class="route-popup">
       <strong>${title}</strong>
