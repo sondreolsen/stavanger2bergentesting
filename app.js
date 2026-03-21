@@ -5,7 +5,28 @@ const INITIAL_BOUNDS = L.latLngBounds(
 
 const HALHJEM_FERRY_QUAY = { label: "Halhjem ferjekai", lat: 60.14735, lon: 5.42693 };
 const SANDVIKVAG_FERRY_QUAY = { label: "Sandvikvag ferjekai", lat: 59.96806, lon: 5.33528 };
-const HORDFSAT_GEOJSON_PATH = "./hordfast_simplified.geojson";
+const HORDFAST_GEOJSON = {
+  type: "FeatureCollection",
+  name: "hordfast_e39_stord_os_simplified",
+  features: [
+    { type: "Feature", properties: { OBJECTID: 1, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.49657, 59.79889], [5.52196, 59.83079], [5.51653, 59.86726]] } },
+    { type: "Feature", properties: { OBJECTID: 2, Navn: "Alt_F2_Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.51684, 59.86642], [5.50948, 59.8775], [5.51581, 59.88585]] } },
+    { type: "Feature", properties: { OBJECTID: 3, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.51581, 59.88585], [5.54041, 59.89567]] } },
+    { type: "Feature", properties: { OBJECTID: 4, Navn: "Alt_F2_Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.54041, 59.89567], [5.54831, 59.90674], [5.53495, 59.91976]] } },
+    { type: "Feature", properties: { OBJECTID: 5, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.53495, 59.91976], [5.51754, 59.96451]] } },
+    { type: "Feature", properties: { OBJECTID: 6, Navn: "Alt_F2_Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.51754, 59.96451], [5.5062, 59.97899]] } },
+    { type: "Feature", properties: { OBJECTID: 7, Navn: "Alt_F2_Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.41882, 59.98082], [5.40996, 59.98096]] } },
+    { type: "Feature", properties: { OBJECTID: 8, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.5062, 59.97899], [5.46022, 59.98668], [5.41882, 59.98082]] } },
+    { type: "Feature", properties: { OBJECTID: 9, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.40996, 59.98096], [5.3707, 59.99562], [5.36748, 60.01298]] } },
+    { type: "Feature", properties: { OBJECTID: 10, Navn: "Alt_F2_Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.36748, 60.01298], [5.36876, 60.02293]] } },
+    { type: "Feature", properties: { OBJECTID: 11, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.36876, 60.02293], [5.37302, 60.03837]] } },
+    { type: "Feature", properties: { OBJECTID: 12, Navn: "Alt_F2_Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.37302, 60.03837], [5.37478, 60.05711]] } },
+    { type: "Feature", properties: { OBJECTID: 13, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.37478, 60.05711], [5.37078, 60.06762]] } },
+    { type: "Feature", properties: { OBJECTID: 14, Navn: "K7-1", Medium: "Bru" }, geometry: { type: "LineString", coordinates: [[5.37078, 60.06762], [5.36388, 60.07912], [5.3887, 60.10875], [5.37875, 60.13227]] } },
+    { type: "Feature", properties: { OBJECTID: 15, Navn: "K7-1-Tunnel", Medium: "Tunnel" }, geometry: { type: "LineString", coordinates: [[5.37875, 60.13227], [5.37653, 60.14304], [5.4284, 60.1722], [5.44118, 60.18841]] } },
+    { type: "Feature", properties: { OBJECTID: 16, Navn: "Alt_F2_Veg_i_dagen", Medium: "Veg i dagen" }, geometry: { type: "LineString", coordinates: [[5.44118, 60.18841], [5.44045, 60.20445]] } },
+  ],
+};
 
 const CURRENT_E39_FERRY_SEGMENT = {
   label: "Halhjem-Sandvikvag",
@@ -373,12 +394,7 @@ async function getFutureSegments() {
 }
 
 async function loadHordfastSegment() {
-  const response = await fetch(HORDFSAT_GEOJSON_PATH);
-  if (!response.ok) {
-    throw new Error("Klarte ikke a laste Hordfast-linjen fra prosjektmappen.");
-  }
-
-  const geojson = await response.json();
+  const geojson = HORDFAST_GEOJSON;
   const coordinates = flattenGeoJsonToLine(geojson);
   if (coordinates.length < 2) {
     throw new Error("Hordfast-filen inneholder ikke en gyldig linje.");
