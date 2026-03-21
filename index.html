@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sjekk hvor fort du kommer deg frem med den nye veien!</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  >
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="page-shell">
+    <section class="hero">
+      <p class="eyebrow">Stavanger2Bergen</p>
+      <h1>Sjekk hvor fort du kommer deg frem med den nye veien!</h1>
+      <p class="lede">
+        Skriv inn start og mål, så tegnes ruten i begge kartene med kjøretid og distanse.
+      </p>
+
+      <form id="route-form" class="route-form">
+        <label class="field">
+          <span>Fra</span>
+          <input
+            id="from-input"
+            name="from"
+            type="text"
+            placeholder="Knarvik"
+            value="Knarvik"
+            autocomplete="street-address"
+            required
+          >
+        </label>
+
+        <label class="field">
+          <span>Til</span>
+          <input
+            id="to-input"
+            name="to"
+            type="text"
+            placeholder="Stavanger"
+            value="Stavanger"
+            autocomplete="off"
+            required
+          >
+        </label>
+
+        <button type="submit" id="submit-button">Vis rute</button>
+      </form>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+
+    <section class="maps-grid">
+      <article class="map-card">
+        <div class="map-card__header">
+          <div>
+            <h2>Dagens E39</h2>
+          </div>
+          <div id="summary-left" class="summary-pill">Søk etter en rute for å se data</div>
+        </div>
+        <div id="map-left" class="map-frame" aria-label="Venstre kart"></div>
+      </article>
+
+      <article class="map-card">
+        <div class="map-card__header">
+          <div>
+            <h2>Fremtidens E39</h2>
+          </div>
+          <div id="summary-right" class="summary-pill">Søk etter en rute for å se data</div>
+        </div>
+        <div id="map-right" class="map-frame" aria-label="Høyre kart"></div>
+      </article>
+    </section>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="./app.js"></script>
+</body>
+</html>
