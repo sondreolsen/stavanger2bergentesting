@@ -5,6 +5,8 @@ const INITIAL_BOUNDS = L.latLngBounds(
 
 const HALHJEM_FERRY_QUAY = { label: "Halhjem ferjekai", lat: 60.14735, lon: 5.42693 };
 const SANDVIKVAG_FERRY_QUAY = { label: "Sandvikvag ferjekai", lat: 59.96806, lon: 5.33528 };
+const ARSVAGEN_FERRY_QUAY = { label: "Arsvagen ferjekai", lat: 59.1669, lon: 5.4526 };
+const MORTAVIKA_FERRY_QUAY = { label: "Mortavika ferjekai", lat: 59.2746, lon: 5.4895 };
 const HORDFAST_GEOJSON = {
   type: "FeatureCollection",
   name: "hordfast_e39_stord_os_simplified",
@@ -79,6 +81,21 @@ const CURRENT_E39_FERRY_SEGMENT = {
       [5.398, 60.075],
       [5.368, 60.025],
       [SANDVIKVAG_FERRY_QUAY.lon, SANDVIKVAG_FERRY_QUAY.lat],
+    ],
+  },
+};
+
+const CURRENT_E39_SECOND_FERRY_SEGMENT = {
+  label: "Arsvagen-Mortavika",
+  distance: 10000,
+  duration: 30 * 60,
+  geometry: {
+    type: "LineString",
+    coordinates: [
+      [ARSVAGEN_FERRY_QUAY.lon, ARSVAGEN_FERRY_QUAY.lat],
+      [5.462, 59.19],
+      [5.476, 59.225],
+      [MORTAVIKA_FERRY_QUAY.lon, MORTAVIKA_FERRY_QUAY.lat],
     ],
   },
 };
@@ -357,14 +374,17 @@ async function fetchRoadRoute(points) {
 }
 
 async function fetchCurrentE39Route(fromLocation, toLocation) {
-  const [northLeg, southLeg] = await Promise.all([
+  const [northLeg, middleLeg, southLeg] = await Promise.all([
     fetchRoadRoute([fromLocation, HALHJEM_FERRY_QUAY]),
-    fetchRoadRoute([SANDVIKVAG_FERRY_QUAY, toLocation]),
+    fetchRoadRoute([SANDVIKVAG_FERRY_QUAY, ARSVAGEN_FERRY_QUAY]),
+    fetchRoadRoute([MORTAVIKA_FERRY_QUAY, toLocation]),
   ]);
 
   return mergeRouteSegments([
     northLeg,
     CURRENT_E39_FERRY_SEGMENT,
+    middleLeg,
+    CURRENT_E39_SECOND_FERRY_SEGMENT,
     southLeg,
   ]);
 }
@@ -710,7 +730,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     title: formatSummary(currentRoute.distance, currentRoute.duration),
     fromLocation,
     toLocation,
-    footer: "Dagens E39 via Halhjem-Sandvikvag",
+    footer: "Dagens E39 via Halhjem-Sandvikvag og Arsvagen-Mortavika",
   });
   leftDetailsEl.hidden = false;
 
