@@ -380,13 +380,24 @@ async function fetchCurrentE39Route(fromLocation, toLocation) {
     fetchRoadRoute([MORTAVIKA_FERRY_QUAY, toLocation]),
   ]);
 
-  return mergeRouteSegments([
+  const fullRoute = mergeRouteSegments([
     northLeg,
     CURRENT_E39_FERRY_SEGMENT,
     middleLeg,
     CURRENT_E39_SECOND_FERRY_SEGMENT,
     southLeg,
   ]);
+
+  const displayRoute = mergeRouteSegments([
+    northLeg,
+    middleLeg,
+    southLeg,
+  ]);
+
+  return {
+    ...fullRoute,
+    displayGeometry: displayRoute.geometry,
+  };
 }
 
 async function fetchFutureE39Route(fromLocation, toLocation) {
@@ -683,7 +694,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
   clearMapVisuals(state.current);
   clearMapVisuals(state.future);
 
-  const currentLayer = L.geoJSON(currentRoute.geometry, {
+  const currentLayer = L.geoJSON(currentRoute.displayGeometry ?? currentRoute.geometry, {
     style: {
       color: "#0e7a63",
       weight: 6,
@@ -700,6 +711,15 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     },
   }).addTo(mapLeft);
 
+  const currentSecondFerryLayer = L.geoJSON(CURRENT_E39_SECOND_FERRY_SEGMENT.geometry, {
+    style: {
+      color: "#4f83ff",
+      weight: 4,
+      opacity: 0.95,
+      dashArray: "8 8",
+    },
+  }).addTo(mapLeft);
+
   const futureLayer = L.geoJSON(futureRoute.displayGeometry ?? futureRoute.geometry, {
     style: {
       color: "#dd6b20",
@@ -708,7 +728,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
     },
   }).addTo(mapRight);
 
-  state.current.routeLayers.push(currentLayer, currentFerryLayer);
+  state.current.routeLayers.push(currentLayer, currentFerryLayer, currentSecondFerryLayer);
   state.future.routeLayers.push(futureLayer);
 
   if (futureRoute.hordfastGeoJson) {
