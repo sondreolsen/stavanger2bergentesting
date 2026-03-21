@@ -5,6 +5,7 @@ const INITIAL_BOUNDS = L.latLngBounds(
 
 const HALHJEM_FERRY_QUAY = { label: "Halhjem ferjekai", lat: 60.14735, lon: 5.42693 };
 const SANDVIKVAG_FERRY_QUAY = { label: "Sandvikvag ferjekai", lat: 59.96806, lon: 5.33528 };
+const HORDFSAT_GEOJSON_PATH = "./hordfast_simplified.geojson";
 
 const CURRENT_E39_FERRY_SEGMENT = {
   label: "Halhjem-Sandvikvag",
@@ -24,8 +25,8 @@ const CURRENT_E39_FERRY_SEGMENT = {
 const FUTURE_SOUTH_ANCHOR = { label: "Smiene", lat: 58.9826, lon: 5.6978 };
 const FUTURE_NORTH_ANCHOR = { label: "Vagsbotn", lat: 60.4658, lon: 5.3986 };
 const FUTURE_KLAUVANESET = { label: "Klauvaneset", lat: 60.4775, lon: 5.3456 };
-const FUTURE_HORDFAST_NORTH = { label: "Svegatjorn", lat: 60.2405, lon: 5.4652 };
-const FUTURE_HORDFAST_SOUTH = { label: "Adland", lat: 59.7704, lon: 5.4672 };
+const FUTURE_HORDFAST_NORTH = { label: "Svegatjorn", lat: 60.20445, lon: 5.44045 };
+const FUTURE_HORDFAST_SOUTH = { label: "Adland", lat: 59.79889, lon: 5.49657 };
 const FUTURE_BOMLAFJORDEN_NORTH = { label: "Bomlafjorden nord", lat: 59.7364, lon: 5.455 };
 const FUTURE_BOKN = { label: "Vestre Bokn", lat: 59.2297, lon: 5.4613 };
 const FUTURE_HARESTAD = { label: "Harestad", lat: 59.0688, lon: 5.6417 };
@@ -51,25 +52,7 @@ const FUTURE_E39_SEGMENTS = [
     label: "E39 Hordfast / Stord-Os / Adland-Svegatjorn",
     distance: 55000,
     duration: 31 * 60,
-    geometry: {
-      type: "LineString",
-      coordinates: [
-        [5.4652, 60.2405],
-        [5.425, 60.233],
-        [5.362, 60.224],
-        [5.306, 60.198],
-        [5.257, 60.160],
-        [5.229, 60.117],
-        [5.214, 60.066],
-        [5.206, 60.012],
-        [5.203, 59.955],
-        [5.248, 59.911],
-        [5.304, 59.871],
-        [5.366, 59.835],
-        [5.424, 59.803],
-        [5.4672, 59.7704],
-      ],
-    },
+    geometry: null,
   },
   {
     label: "E39 Bokn-Bomlafjorden",
@@ -353,9 +336,10 @@ async function fetchCurrentE39Route(fromLocation, toLocation) {
 
 async function fetchFutureE39Route(fromLocation, toLocation) {
   const shouldRunNorthToSouth = chooseFutureDirection(fromLocation, toLocation);
+  const { futureSegments, hordfastGeoJson } = await getFutureSegments();
   const orderedFixedSegments = shouldRunNorthToSouth
-    ? FUTURE_E39_SEGMENTS
-    : [...FUTURE_E39_SEGMENTS].reverse().map(reverseSegment);
+    ? futureSegments
+    : [...futureSegments].reverse().map(reverseSegment);
 
   const startAnchor = shouldRunNorthToSouth ? FUTURE_NORTH_ANCHOR : FUTURE_SOUTH_ANCHOR;
   const endAnchor = shouldRunNorthToSouth ? FUTURE_SOUTH_ANCHOR : FUTURE_NORTH_ANCHOR;
@@ -371,7 +355,83 @@ async function fetchFutureE39Route(fromLocation, toLocation) {
   return {
     ...route,
     projects: orderedFixedSegments.map((segment) => segment.label),
+    hordfastGeoJson: shouldRunNorthToSouth ? hordfastGeoJson : reverseHordfastGeoJson(hordfastGeoJson),
   };
+}
+
+async function getFutureSegments() {
+  const hordfastSegment = await loadHordfastSegment();
+
+  return {
+    futureSegments: FUTURE_E39_SEGMENTS.map((segment) =>
+      segment.label.includes("Hordfast")
+        ? { ...segment, geometry: hordfastSegment.geometry, distance: hordfastSegment.distance }
+        : segment
+    ),
+    hordfastGeoJson: hordfastSegment.geojson,
+  };
+}
+
+async function loadHordfastSegment() {
+  const response = await fetch(HORDFSAT_GEOJSON_PATH);
+  if (!response.ok) {
+    throw new Error("Klarte ikke a laste Hordfast-linjen fra prosjektmappen.");
+  }
+
+  const geojson = await response.json();
+  const coordinates = flattenGeoJsonToLine(geojson);
+  if (coordinates.length < 2) {
+    throw new Error("Hordfast-filen inneholder ikke en gyldig linje.");
+  }
+
+  return {
+    geometry: {
+      type: "LineString",
+      coordinates,
+    },
+    distance: estimateLineDistance(coordinates),
+    geojson,
+  };
+}
+
+function reverseHordfastGeoJson(geojson) {
+  return {
+    ...geojson,
+    features: (geojson.features ?? []).map((feature) => ({
+      ...feature,
+      geometry: {
+        ...feature.geometry,
+        coordinates: [...(feature.geometry?.coordinates ?? [])].reverse(),
+      },
+    })).reverse(),
+  };
+}
+
+function flattenGeoJsonToLine(geojson) {
+  const features = geojson.features ?? [];
+  const sortedFeatures = [...features].sort(
+    (left, right) => (left.properties?.OBJECTID ?? 0) - (right.properties?.OBJECTID ?? 0)
+  );
+
+  const mergedCoordinates = [];
+  sortedFeatures.forEach((feature) => {
+    const lineCoordinates = feature.geometry?.coordinates ?? [];
+    lineCoordinates.forEach((coordinate, index) => {
+      const previous = mergedCoordinates[mergedCoordinates.length - 1];
+      const isDuplicate =
+        previous &&
+        previous[0] === coordinate[0] &&
+        previous[1] === coordinate[1];
+
+      if (index === 0 && isDuplicate) {
+        return;
+      }
+
+      mergedCoordinates.push(coordinate);
+    });
+  });
+
+  return mergedCoordinates;
 }
 
 async function buildFutureCorridor(shouldRunNorthToSouth, fixedSegments) {
@@ -464,6 +524,49 @@ function mergeRouteSegments(segments) {
   };
 }
 
+function estimateLineDistance(coordinates) {
+  let distance = 0;
+
+  for (let index = 1; index < coordinates.length; index += 1) {
+    const [prevLon, prevLat] = coordinates[index - 1];
+    const [nextLon, nextLat] = coordinates[index];
+    distance += estimateDistanceBetweenPoints(
+      { lat: prevLat, lon: prevLon },
+      { lat: nextLat, lon: nextLon }
+    );
+  }
+
+  return distance;
+}
+
+function styleHordfastFeature(feature) {
+  const medium = feature?.properties?.Medium ?? "";
+  const name = feature?.properties?.Navn ?? "";
+
+  if (/Tunnel/i.test(medium)) {
+    return {
+      color: "#5f6b7a",
+      weight: 7,
+      opacity: 0.96,
+      dashArray: "10 8",
+    };
+  }
+
+  if (/bru/i.test(medium) || /K7-1/i.test(name)) {
+    return {
+      color: "#f4b400",
+      weight: 8,
+      opacity: 0.96,
+    };
+  }
+
+  return {
+    color: "#dd6b20",
+    weight: 7,
+    opacity: 0.96,
+  };
+}
+
 function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
   clearMapVisuals(state.current);
   clearMapVisuals(state.future);
@@ -486,6 +589,13 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
 
   state.current.routeLayers.push(currentLayer);
   state.future.routeLayers.push(futureLayer);
+
+  if (futureRoute.hordfastGeoJson) {
+    const hordfastLayer = L.geoJSON(futureRoute.hordfastGeoJson, {
+      style: styleHordfastFeature,
+    }).addTo(mapRight);
+    state.future.routeLayers.push(hordfastLayer);
+  }
 
   const startLatLng = L.latLng(fromLocation.lat, fromLocation.lon);
   const endLatLng = L.latLng(toLocation.lat, toLocation.lon);
@@ -723,6 +833,25 @@ function straightLineDistance(pointA, pointB) {
   const latDiff = pointA.lat - pointB.lat;
   const lonDiff = pointA.lon - pointB.lon;
   return Math.sqrt(latDiff ** 2 + lonDiff ** 2);
+}
+
+function estimateDistanceBetweenPoints(pointA, pointB) {
+  const earthRadius = 6371000;
+  const lat1 = toRadians(pointA.lat);
+  const lat2 = toRadians(pointB.lat);
+  const deltaLat = toRadians(pointB.lat - pointA.lat);
+  const deltaLon = toRadians(pointB.lon - pointA.lon);
+
+  const haversine =
+    Math.sin(deltaLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(deltaLon / 2) ** 2;
+  const arc = 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+
+  return earthRadius * arc;
+}
+
+function toRadians(value) {
+  return value * (Math.PI / 180);
 }
 
 function syncMaps(primaryMap, secondaryMap) {
