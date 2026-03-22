@@ -129,10 +129,45 @@ const FUTURE_E39_SEGMENTS = [
     },
   },
   {
+    label: "E39 Bergen-Os",
+    distance: 24000,
+    duration: 17 * 60,
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [5.3456, 60.4775],
+        [5.336, 60.459],
+        [5.327, 60.44],
+        [5.323, 60.414],
+        [5.326, 60.385],
+        [5.337, 60.355],
+        [5.359, 60.324],
+        [5.392, 60.289],
+        [5.421, 60.252],
+        [5.44045, 60.20445],
+      ],
+    },
+  },
+  {
     label: "E39 Hordfast / Stord-Os / Adland-Svegatjorn",
     distance: 55000,
     duration: 31 * 60,
     geometry: null,
+  },
+  {
+    label: "E39 Sor for Hordfast",
+    distance: 9000,
+    duration: 6 * 60,
+    geometry: {
+      type: "LineString",
+      coordinates: [
+        [5.49657, 59.79889],
+        [5.492, 59.781],
+        [5.489, 59.762],
+        [5.488, 59.742],
+        [5.488, 59.704],
+      ],
+    },
   },
   {
     label: "E39 Bokn-Bomlafjorden",
@@ -412,7 +447,7 @@ async function fetchFutureE39Route(fromLocation, toLocation) {
   const startAnchor = shouldRunNorthToSouth ? FUTURE_NORTH_ANCHOR : FUTURE_SOUTH_ANCHOR;
   const endAnchor = shouldRunNorthToSouth ? FUTURE_SOUTH_ANCHOR : FUTURE_NORTH_ANCHOR;
 
-  const corridorRoute = await buildFutureCorridor(shouldRunNorthToSouth, orderedFixedSegments);
+  const corridorRoute = buildFutureCorridor(orderedFixedSegments);
   const [firstLeg, lastLeg] = await Promise.all([
     fetchRoadRoute([fromLocation, startAnchor]),
     fetchRoadRoute([endAnchor, toLocation]),
@@ -545,51 +580,8 @@ function flattenGeoJsonToLine(geojson) {
   return mergedCoordinates;
 }
 
-async function buildFutureCorridor(shouldRunNorthToSouth, fixedSegments) {
-  const connectorPointSets = shouldRunNorthToSouth
-    ? [
-        [FUTURE_KLAUVANESET, FUTURE_HORDFAST_NORTH],
-        [FUTURE_HORDFAST_SOUTH, FUTURE_BOMLAFJORDEN_NORTH],
-      ]
-    : [
-        [FUTURE_BOMLAFJORDEN_NORTH, FUTURE_HORDFAST_SOUTH],
-        [FUTURE_HORDFAST_NORTH, FUTURE_KLAUVANESET],
-      ];
-
-  const connectorRoutes = await Promise.all(
-    connectorPointSets.map(([fromPoint, toPoint]) => fetchRoadRoute([fromPoint, toPoint]))
-  );
-
-  const labeledConnectorRoutes = connectorRoutes.map((route, index) => ({
-    ...route,
-    label: shouldRunNorthToSouth
-      ? index === 0
-        ? "Connector Klauvaneset-Hordfast"
-        : "Connector Hordfast-Bomlafjorden"
-      : index === 0
-        ? "Connector Bomlafjorden-Hordfast"
-        : "Connector Hordfast-Klauvaneset",
-  }));
-
-  return shouldRunNorthToSouth
-    ? [
-        fixedSegments[0],
-        labeledConnectorRoutes[0],
-        fixedSegments[1],
-        labeledConnectorRoutes[1],
-        fixedSegments[2],
-        fixedSegments[3],
-        fixedSegments[4],
-      ]
-    : [
-        fixedSegments[0],
-        fixedSegments[1],
-        fixedSegments[2],
-        labeledConnectorRoutes[0],
-        fixedSegments[3],
-        labeledConnectorRoutes[1],
-        fixedSegments[4],
-      ];
+function buildFutureCorridor(fixedSegments) {
+  return fixedSegments;
 }
 
 function chooseFutureDirection(fromLocation, toLocation) {
@@ -752,7 +744,7 @@ function drawRoutes(currentRoute, futureRoute, fromLocation, toLocation) {
 
   leftSummaryEl.textContent = formatDuration(currentRoute.duration);
   rightSummaryEl.textContent = formatDuration(futureRoute.duration);
-  futureSavingsEl.textContent = `Sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)}`;
+  futureSavingsEl.textContent = `Du sparer ${formatDurationDelta(currentRoute.duration - futureRoute.duration)}`;
 
   leftDetailsEl.innerHTML = buildDetailsHtml({
     title: formatSummary(currentRoute.distance, currentRoute.duration),

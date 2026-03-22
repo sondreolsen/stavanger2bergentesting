@@ -249,6 +249,25 @@ h2 {
   color: var(--accent-strong);
 }
 
+.savings-highlight {
+  margin: 0 20px 14px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(14, 122, 99, 0.12), rgba(221, 242, 235, 0.94));
+  border: 1px solid rgba(14, 122, 99, 0.18);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  line-height: 1.05;
+  font-weight: 700;
+  text-align: center;
+  color: var(--accent-strong);
+  box-shadow: 0 10px 24px rgba(8, 89, 72, 0.12);
+}
+
+.savings-highlight:empty {
+  display: none;
+}
+
 .summary-pill {
   min-width: 220px;
   max-width: 320px;
