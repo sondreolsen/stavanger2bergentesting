@@ -250,7 +250,8 @@ h2 {
 }
 
 .savings-highlight {
-  margin: 0 20px 14px;
+  width: min(760px, calc(100% - 32px));
+  margin: 0 auto 18px;
   padding: 16px 18px;
   border-radius: 20px;
   background: linear-gradient(135deg, rgba(14, 122, 99, 0.12), rgba(221, 242, 235, 0.94));
