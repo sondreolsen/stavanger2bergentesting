@@ -422,10 +422,7 @@ async function fetchFutureE39Route(fromLocation, toLocation) {
   const displayRoute = mergeRouteSegments([
     firstLeg,
     ...corridorRoute.filter(
-      (segment) =>
-        !segment.label?.includes("Hordfast") &&
-        !segment.label?.includes("Klauvaneset-Hordfast") &&
-        !segment.label?.includes("Hordfast-Klauvaneset")
+      (segment) => !segment.label?.includes("Hordfast")
     ),
     lastLeg,
   ]);
